@@ -66,20 +66,31 @@ class RichTextView: AutogrowingTextView {
             let old = oldValue?.toNSRange(in: self)
             let new = selectedTextRange?.toNSRange(in: self)
 
-            // Handle the case where caret is moved using keys or direct taps on given location.
-            // When selecting text or using backspace/delete, this code is skipped
-            if oldValue != selectedTextRange,
-                let new = new, new.length <= 1,
-                new.location < attributedText.length - 1 {
+            adjustTextBlockRangeOnSelectionChangeIfRequired(oldRange: old, newRange: new)
+            richTextViewDelegate?.richTextView(self, selectedRangeChangedFrom: old, to: selectedTextRange?.toNSRange(in: self))
+        }
+    }
 
-                let newTextRange = attributedText.attributedSubstring(from: NSRange(location: new.location, length: 1))
-                let isNonFocus = newTextRange.attribute(.noFocus, at: 0, effectiveRange: nil) as? Bool == true
+    private func adjustTextBlockRangeOnSelectionChangeIfRequired(oldRange: NSRange?, newRange: NSRange?) {
+        guard let old = oldRange,
+            let new = newRange,
+            old != new else { return }
 
-                if isNonFocus == true {
-                    adjustRangeOnNonFocus(oldRange: oldValue)
-                }
+        let isReverseTraversal = new.location < old.location
+
+        guard new.length > 0 else {
+            if let textBlockRange = attributedText.rangeOf(attribute: .noFocus, at: new.location),
+                textBlockRange.location != new.location {
+                let location = isReverseTraversal ? textBlockRange.location : textBlockRange.endLocation
+                selectedRange = NSRange(location: location, length: 0)
             }
-            richTextViewDelegate?.richTextView(self, selectedRangeChangedFrom: old, to: new)
+            return
+        }
+
+        let location = isReverseTraversal ? new.location : max(0, new.endLocation - 1)
+        if let textBlockRange = attributedText.rangeOf(attribute: .noFocus, at: location),
+            textBlockRange.contains(location) {
+            selectedRange =  isReverseTraversal ? textBlockRange.union(old) : textBlockRange.union(new)
         }
     }
 

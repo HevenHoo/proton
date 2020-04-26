@@ -110,6 +110,87 @@ class RichTextViewTests: XCTestCase {
         XCTAssertEqual(textView.selectedRange, NSRange(location: 8, length: 0))
     }
 
+    func testLocationChangeForTextBlock() {
+        let textView = RichTextView(context: RichTextViewContext())
+        let text = NSMutableAttributedString(string: "0123")
+        text.append(NSAttributedString(string: "4567", attributes: [.noFocus: true]))
+        text.append(NSAttributedString(string: "890"))
+        textView.attributedText = text
+        textView.selectedTextRange = NSRange(location: 3, length: 0).toTextRange(textInput: textView)
+        let range = NSRange(location: 6, length: 1).toTextRange(textInput: textView)
+        textView.selectedTextRange = range
+        XCTAssertEqual(textView.selectedRange, NSRange(location: 4, length: 4))
+    }
+
+    func testLocationChangeReverseForTextBlock() {
+        let textView = RichTextView(context: RichTextViewContext())
+
+        let text = NSMutableAttributedString(string: "0123")
+        text.append(NSAttributedString(string: "4567", attributes: [.noFocus: true]))
+        text.append(NSAttributedString(string: "890"))
+        textView.attributedText = text
+        textView.selectedTextRange = NSRange(location: 8, length: 1).toTextRange(textInput: textView)
+        let range = NSRange(location: 6, length: 2).toTextRange(textInput: textView)
+        textView.selectedTextRange = range
+        XCTAssertEqual(textView.selectedRange, NSRange(location: 4, length: 5))
+    }
+
+    func testRangeSelectionReverseForTextBlock() {
+        let textView = RichTextView(context: RichTextViewContext())
+        let text = NSMutableAttributedString(string: "This is test string with attribute")
+        textView.attributedText = text
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 8, length: 4)) // test
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 13, length: 6)) // string
+
+        textView.selectedRange = NSRange(location: 12, length: 1) // space between test and string
+        textView.selectedTextRange = NSRange(location: 11, length: 2).toTextRange(textInput: textView) // t (ending of test) and space
+        let range = textView.selectedRange
+
+        XCTAssertEqual(range, NSRange(location: 8, length: 5)) // "test " test and following space
+    }
+
+    func testRangeSelectionReverseForMultipleTextBlock() {
+        let textView = RichTextView(context: RichTextViewContext())
+        let text = NSMutableAttributedString(string: "This is test string with attribute")
+        textView.attributedText = text
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 8, length: 4)) // test
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 13, length: 6)) // string
+
+        textView.selectedRange = NSRange(location: 12, length: 7) // " string" space followed by string
+        textView.selectedTextRange = NSRange(location: 11, length: 8).toTextRange(textInput: textView) // "t string" t (ending of test), space and string
+        let range = textView.selectedRange
+
+        XCTAssertEqual(range, NSRange(location: 8, length: 11)) // "test string" test, space and string
+    }
+
+    func testRangeSelectionForwardForTextBlock() {
+        let textView = RichTextView(context: RichTextViewContext())
+        let text = NSMutableAttributedString(string: "This is test string with attribute")
+        textView.attributedText = text
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 8, length: 4)) // test
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 13, length: 6)) // string
+
+        textView.selectedRange = NSRange(location: 12, length: 1) // space between test and string
+        textView.selectedTextRange = NSRange(location: 12, length: 2).toTextRange(textInput: textView) //" s" space and (starting of string)
+        let range = textView.selectedRange
+
+        XCTAssertEqual(range, NSRange(location: 12, length: 7)) // " string" test and following space
+    }
+
+    func testRangeSelectionForwardForMultipleTextBlock() {
+        let textView = RichTextView(context: RichTextViewContext())
+        let text = NSMutableAttributedString(string: "This is test string with attribute")
+        textView.attributedText = text
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 8, length: 4)) // test
+        textView.addAttributes([.noFocus: true], range: NSRange(location: 13, length: 6)) // string
+
+        textView.selectedRange = NSRange(location: 8, length: 5) // " string" space followed by string
+        textView.selectedTextRange = NSRange(location: 8, length: 6).toTextRange(textInput: textView) // "t string" t (ending of test), space and string
+        let range = textView.selectedRange
+
+        XCTAssertEqual(range, NSRange(location: 8, length: 11)) // "test string" test, space and string
+    }
+
     func testInvokesDelegateOnShiftTab() {
         let assertions: ((EditorKey, UIKeyModifierFlags) -> Void) = { key, flags in
             XCTAssertEqual(key, .tab)
