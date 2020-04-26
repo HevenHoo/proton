@@ -72,7 +72,11 @@ extension NSAttributedString {
                         if let contentView = attachment.contentView {
                             let isBlockAttachment = substring.attribute(.isBlockAttachment, at: 0, effectiveRange: nil) as? Bool
                             let attachmentType = (isBlockAttachment == true) ? AttachmentType.block : .inline
-                            content = EditorContent(type: .attachment(name: contentName, attachment: attachment, contentView: contentView, type: attachmentType), enclosingRange: range)
+                            if isBlockAttachment == false && attachmentType == .inline {
+                                content = EditorContent(type: .text(name: defaultIfMissing, attributedString: attachment.string), enclosingRange: range)
+                            } else {
+                                content = EditorContent(type: .attachment(name: contentName, attachment: attachment, contentView: contentView, type: attachmentType), enclosingRange: range)
+                            }
                         }
                     } else {
                         let location = range.location + range.length
